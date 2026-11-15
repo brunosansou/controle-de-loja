@@ -2,32 +2,29 @@
 import { findDay } from '../calc.js';
 import { formatLong, formatShort } from '../dates.js';
 import { money, dayHash, toast } from './dom.js';
+import { icon } from './icons.js';
 
 export async function renderClosingView(root, ctx, date) {
   const { ledger } = await ctx.refresh();
   const day = findDay(ledger, date);
   const back = dayHash(date, ctx.now());
+  const header = `
+    <header class="top-bar">
+      <a class="back icon-btn" href="${back}" aria-label="Voltar">${icon('back')}</a>
+      <h1>Fechamento <span>${formatLong(date)}</span></h1>
+    </header>`;
 
   if (!day) {
-    root.innerHTML = `
-      <a class="back" href="${back}">Voltar</a>
-      <h1>Fechamento <span>${formatLong(date)}</span></h1>
-      <p class="empty">Nada para fechar neste dia.</p>`;
+    root.innerHTML = `${header}<p class="empty">Nada para fechar neste dia.</p>`;
     return;
   }
 
-  let note;
-  if (day.saldoCents < 0) {
-    note = `Prejuízo de ${money(-day.saldoCents)} vai como despesa para o próximo dia com movimento.`;
-  } else if (day.saldoCents === 0) {
-    note = 'Sem sobra hoje.';
-  } else {
-    note = '';
-  }
+  let note = '';
+  if (day.saldoCents < 0) note = `Prejuízo de ${money(-day.saldoCents)} vai como despesa para o próximo dia com movimento.`;
+  else if (day.saldoCents === 0) note = 'Sem sobra hoje.';
 
   root.innerHTML = `
-    <a class="back" href="${back}">Voltar</a>
-    <h1>Fechamento <span>${formatLong(date)}</span></h1>
+    ${header}
     <section class="tape" aria-label="Resumo do fechamento">
       <dl>
         <div class="big"><dt>Féria</dt><dd class="in">${money(day.feriaCents)}</dd></div>
@@ -42,8 +39,8 @@ export async function renderClosingView(root, ctx, date) {
       ${note ? `<p class="tape-note">${note}</p>` : ''}
     </section>
     ${day.closed
-      ? '<p class="empty">Este dia já está fechado.</p>'
-      : '<button type="button" class="btn primary" data-action="close">Confirmar fechamento</button>'}`;
+      ? `<p class="empty">${icon('lock')}<span>Este dia já está fechado.</span></p>`
+      : `<button type="button" class="btn primary" data-action="close">${icon('check')}Confirmar fechamento</button>`}`;
 
   root.querySelector('[data-action="close"]')?.addEventListener('click', async (ev) => {
     ev.currentTarget.disabled = true;

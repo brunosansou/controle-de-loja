@@ -2,6 +2,7 @@
 import { buildBackup, backupFileName, parseBackup, BackupError, needsBackupReminder } from '../backup.js';
 import { formatShort, todayKey } from '../dates.js';
 import { timeOf, toast } from './dom.js';
+import { icon } from './icons.js';
 
 function downloadFile(file) {
   const a = document.createElement('a');
@@ -21,12 +22,17 @@ export async function renderBackupView(root, ctx) {
   const last = await ctx.store.getLastBackupAt();
 
   root.innerHTML = `
-    <h1>Backup</h1>
-    <p class="backup-status">${last ? `Último backup: ${describeWhen(last)}` : 'Nenhum backup feito ainda.'}</p>
-    <p class="backup-help">Os dados ficam só neste celular. Exporte um backup e guarde o arquivo no Drive ou mande para o seu WhatsApp. Se trocar de celular, é só importar o arquivo.</p>
+    <header class="top-bar"><h1>Backup</h1></header>
+    <section class="backup-card${last ? '' : ' never'}">
+      <span class="avatar">${icon(last ? 'check' : 'backup')}</span>
+      <div>
+        <p class="backup-status">${last ? `Último backup: ${describeWhen(last)}` : 'Nenhum backup feito ainda.'}</p>
+        <p class="backup-help">Os dados ficam só neste celular. Exporte um backup e guarde o arquivo no Drive ou mande para o seu WhatsApp. Se trocar de celular, é só importar o arquivo.</p>
+      </div>
+    </section>
     <div class="backup-actions">
-      <button type="button" class="btn primary" data-action="export">Exportar backup</button>
-      <button type="button" class="btn secondary" data-action="import">Importar backup</button>
+      <button type="button" class="btn primary" data-action="export">${icon('upload')}Exportar backup</button>
+      <button type="button" class="btn outlined" data-action="import">${icon('download')}Importar backup</button>
       <input type="file" hidden data-file>
     </div>
     <p class="form-error" role="alert" hidden></p>`;
@@ -101,6 +107,6 @@ export async function backupReminder(alertsEl, ctx, { entries }) {
   if (!needsBackupReminder({ now: ctx.now(), lastBackupAt, entries })) return;
   const p = document.createElement('p');
   p.className = 'alert';
-  p.innerHTML = 'Faz mais de 7 dias sem backup. <a href="#/backup">Fazer backup</a>';
+  p.innerHTML = `${icon('backup')}<span>Faz mais de 7 dias sem backup. <a href="#/backup">Fazer backup</a></span>`;
   alertsEl.appendChild(p);
 }

@@ -2,6 +2,7 @@
 import { parseBRL, formatBRL } from '../money.js';
 import { formatLong, todayKey } from '../dates.js';
 import { escapeHtml, errorText, dayHash, toast } from './dom.js';
+import { icon } from './icons.js';
 
 export async function renderEntryForm(root, ctx, { mode, type, date, id }) {
   let entry = null;
@@ -24,27 +25,33 @@ export async function renderEntryForm(root, ctx, { mode, type, date, id }) {
   let back = dayHash(date, ctx.now());
   const noun = isIn ? 'entrada' : 'saída';
 
+  const segment = (value, label, ic) => `
+        <label><input type="radio" name="method" value="${value}"${method === value ? ' checked' : ''}><span>${icon('check', 'when-checked')}${icon(ic, 'when-unchecked')}${label}</span></label>`;
+
   root.innerHTML = `
     <form class="entry-form ${isIn ? 'is-in' : 'is-out'}" novalidate>
-      <a class="back" href="${back}">Voltar</a>
-      <h1>${mode === 'editar' ? 'Editar' : 'Nova'} ${noun} <span>${formatLong(date)}</span></h1>
-      <label class="field">
-        <span>Valor</span>
-        <span class="money-input"><span aria-hidden="true">R$</span><input name="amount" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${escapeHtml(amountText)}"${mode === 'novo' ? ' autofocus' : ''}></span>
+      <header class="top-bar">
+        <a class="back icon-btn" href="${back}" aria-label="Voltar">${icon('back')}</a>
+        <h1>${mode === 'editar' ? 'Editar' : 'Nova'} ${noun} <span>${formatLong(date)}</span></h1>
+      </header>
+      <label class="field outlined money">
+        <span class="field-label">Valor</span>
+        <span class="prefix" aria-hidden="true">R$</span>
+        <input name="amount" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${escapeHtml(amountText)}"${mode === 'novo' ? ' autofocus' : ''}>
       </label>
-      <label class="field">
-        <span>Descrição (opcional)</span>
+      <label class="field outlined">
+        <span class="field-label">Descrição (opcional)</span>
         <input name="description" maxlength="80" autocomplete="off" placeholder="${isIn ? 'ex.: venda balcão' : 'ex.: fornecedor'}" value="${escapeHtml(entry?.description ?? '')}">
       </label>
       ${isIn ? `
-      <fieldset class="field method">
-        <legend>Forma</legend>
-        <label><input type="radio" name="method" value="dinheiro"${method === 'dinheiro' ? ' checked' : ''}><span>Dinheiro</span></label>
-        <label><input type="radio" name="method" value="pix"${method === 'pix' ? ' checked' : ''}><span>Pix</span></label>
+      <fieldset class="method segmented">
+        <legend>Forma de pagamento</legend>
+        ${segment('dinheiro', 'Dinheiro', 'cash')}
+        ${segment('pix', 'Pix', 'phone')}
       </fieldset>` : ''}
       <p class="form-error" role="alert" hidden></p>
-      <button type="submit" class="btn primary">Salvar ${noun}</button>
-      ${mode === 'editar' ? '<button type="button" class="btn danger" data-action="delete">Excluir lançamento</button>' : ''}
+      <button type="submit" class="btn primary">${icon('check')}Salvar ${noun}</button>
+      ${mode === 'editar' ? `<button type="button" class="btn danger" data-action="delete">${icon('trash')}Excluir lançamento</button>` : ''}
     </form>`;
 
   const form = root.querySelector('form');

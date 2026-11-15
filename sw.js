@@ -1,6 +1,6 @@
 // Service worker: guarda o app no celular para funcionar sem internet.
 // Ao mudar qualquer arquivo do app, suba a versão abaixo para o celular baixar a nova.
-const CACHE = 'controle-loja-v1';
+const CACHE = 'controle-loja-v2';
 const FILES = [
   './',
   './index.html',
@@ -21,6 +21,7 @@ const FILES = [
   './js/ui/dom.js',
   './js/ui/entry-form.js',
   './js/ui/history-view.js',
+  './js/ui/icons.js',
 ];
 
 self.addEventListener('install', (event) => {

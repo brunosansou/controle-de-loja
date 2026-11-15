@@ -2,6 +2,7 @@
 import { findDay, pendingLossForToday, unclosedPastDays } from '../calc.js';
 import { formatLong, formatShort, todayKey } from '../dates.js';
 import { escapeHtml, money, timeOf } from './dom.js';
+import { icon } from './icons.js';
 
 export async function renderDayView(root, ctx, date) {
   const { entries, ledger } = await ctx.refresh();
@@ -10,14 +11,15 @@ export async function renderDayView(root, ctx, date) {
   const day = findDay(ledger, date);
   const closed = day?.closed === true;
 
+  const alert = (html) => `<p class="alert">${icon('info')}<span>${html}</span></p>`;
   const alerts = [];
   if (isToday) {
     const pending = pendingLossForToday(ledger, today);
     if (pending) {
-      alerts.push(`<p class="alert">Prejuízo de ${formatShort(pending.fromDate)} (${money(pending.cents)}) entra como despesa no primeiro lançamento de hoje.</p>`);
+      alerts.push(alert(`Prejuízo de ${formatShort(pending.fromDate)} (${money(pending.cents)}) entra como despesa no primeiro lançamento de hoje.`));
     }
     for (const d of unclosedPastDays(ledger, today)) {
-      alerts.push(`<p class="alert">O dia ${formatShort(d)} não foi fechado. <a href="#/fechar/${d}">Fechar</a></p>`);
+      alerts.push(alert(`O dia ${formatShort(d)} não foi fechado. <a href="#/fechar/${d}">Fechar</a>`));
     }
   }
 
@@ -25,42 +27,45 @@ export async function renderDayView(root, ctx, date) {
   const rows = [];
   if (day?.prejuizoAnterior) {
     rows.push(`<li class="row auto">
-      <span class="time"></span>
-      <span class="what">Prejuízo de ${formatShort(day.prejuizoAnterior.fromDate)}<small>automático</small></span>
+      <span class="avatar out">${icon('receipt')}</span>
+      <span class="what">Prejuízo de ${formatShort(day.prejuizoAnterior.fromDate)}<small>Lançado automaticamente</small></span>
       <span class="amount out">−${money(day.prejuizoAnterior.cents)}</span>
     </li>`);
   }
   for (const e of day?.entries ?? []) {
-    const label = e.description || (e.type === 'entrada' ? 'Entrada' : 'Saída');
-    const method = e.type === 'entrada' ? `<small>${e.method === 'pix' ? 'Pix' : 'Dinheiro'}</small>` : '';
-    const sign = e.type === 'entrada' ? '+' : '−';
-    const inner = `<span class="time">${timeOf(e.createdAt)}</span>
-      <span class="what">${escapeHtml(label)}${method}</span>
-      <span class="amount ${e.type === 'entrada' ? 'in' : 'out'}">${sign}${money(e.amountCents)}</span>`;
+    const isIn = e.type === 'entrada';
+    const label = e.description || (isIn ? 'Entrada' : 'Saída');
+    const meta = isIn ? `${e.method === 'pix' ? 'Pix' : 'Dinheiro'} às ${timeOf(e.createdAt)}` : `às ${timeOf(e.createdAt)}`;
+    const inner = `<span class="avatar ${isIn ? 'in' : 'out'}">${icon(isIn ? 'add' : 'remove')}</span>
+      <span class="what">${escapeHtml(label)}<small>${meta}</small></span>
+      <span class="amount ${isIn ? 'in' : 'out'}">${isIn ? '+' : '−'}${money(e.amountCents)}</span>`;
     rows.push(closed ? `<li class="row">${inner}</li>` : `<li><a class="row" href="#/editar/${encodeURIComponent(e.id)}">${inner}</a></li>`);
   }
 
-  const emptyText = closed ? 'Nenhum lançamento.' : 'Nenhum lançamento ainda. Use os botões abaixo.';
+  const emptyText = closed ? 'Nenhum lançamento neste dia.' : 'Nenhum lançamento ainda. Toque em Entrada ou Saída para começar.';
   const actions = closed
-    ? '<button type="button" class="btn secondary" data-action="reopen">Reabrir dia</button>'
-    : `${day ? `<a class="btn secondary" href="#/fechar/${date}">Fechar dia</a>` : ''}
+    ? `<button type="button" class="btn tonal" data-action="reopen">${icon('lockOpen')}Reabrir dia</button>`
+    : `${day ? `<a class="btn tonal" href="#/fechar/${date}">${icon('receipt')}Fechar dia</a>` : ''}
        <div class="add-pair">
-         <a class="btn add-in" href="#/lancar/entrada/${date}">+ Entrada</a>
-         <a class="btn add-out" href="#/lancar/saida/${date}">− Saída</a>
+         <a class="btn add-in" href="#/lancar/entrada/${date}">${icon('add')}Entrada</a>
+         <a class="btn add-out" href="#/lancar/saida/${date}">${icon('remove')}Saída</a>
        </div>`;
 
   root.innerHTML = `
-    <header class="day-head">
-      ${isToday ? '' : '<a class="back" href="#/historico">Histórico</a>'}
-      <h1>${isToday ? 'Hoje' : 'Dia'} <span>${formatLong(date)}</span>${closed ? ' <em class="badge">Fechado</em>' : ''}</h1>
-      <dl class="totals">
-        <div><dt>Féria</dt><dd class="in">${money(day?.feriaCents ?? 0)}</dd></div>
-        <div><dt>Despesa</dt><dd class="out">${money(day?.despesaCents ?? 0)}</dd></div>
-        <div><dt>Saldo</dt><dd class="${saldo < 0 ? 'out' : ''}">${money(saldo)}</dd></div>
-      </dl>
+    <header class="day-head top-bar">
+      ${isToday ? '' : `<a class="back icon-btn" href="#/historico" aria-label="Voltar para o histórico">${icon('back')}</a>`}
+      <h1>${isToday ? 'Hoje' : 'Dia'} <span>${formatLong(date)}</span></h1>
+      ${closed ? `<em class="badge">${icon('lock')}Fechado</em>` : ''}
     </header>
+    <section class="hero${saldo < 0 ? ' negative' : ''}" aria-label="Resumo do dia">
+      <dl class="totals">
+        <div class="t-feria"><dt>Féria</dt><dd class="in">${money(day?.feriaCents ?? 0)}</dd></div>
+        <div class="t-despesa"><dt>Despesa</dt><dd class="out">${money(day?.despesaCents ?? 0)}</dd></div>
+        <div class="t-saldo"><dt>Saldo do dia</dt><dd>${money(saldo)}</dd></div>
+      </dl>
+    </section>
     <div class="alerts" data-alerts>${alerts.join('')}</div>
-    ${rows.length ? `<ul class="ledger">${rows.join('')}</ul>` : `<p class="empty">${emptyText}</p>`}
+    ${rows.length ? `<ul class="ledger">${rows.join('')}</ul>` : `<p class="empty">${icon('receipt', 'big')}<span>${emptyText}</span></p>`}
     <div class="day-actions">${actions}</div>`;
 
   root.querySelector('[data-action="reopen"]')?.addEventListener('click', async () => {
