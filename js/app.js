@@ -77,4 +77,7 @@ async function main() {
   await render();
 }
 
+// Pede ao navegador para não apagar os dados deste app quando faltar espaço.
+navigator.storage?.persist?.().catch(() => {});
+
 main();
