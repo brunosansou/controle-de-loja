@@ -16,6 +16,11 @@ async function listFiles(dir) {
   return out;
 }
 
+test('service worker baixa os arquivos direto do servidor ao instalar (ignora cache HTTP)', async () => {
+  const sw = await readFile(join(root, 'sw.js'), 'utf8');
+  assert.match(sw, /cache\.addAll\(\s*FILES\.map\(\s*\(f\)\s*=>\s*new Request\(f,\s*\{\s*cache:\s*'reload'\s*\}\)\s*\)\s*\)/);
+});
+
 test('service worker guarda todos os arquivos do app', async () => {
   const sw = await readFile(join(root, 'sw.js'), 'utf8');
   const list = JSON.parse(sw.match(/const FILES = (\[[\s\S]*?\]);/)[1].replace(/'/g, '"').replace(/,\s*\]/, ']'));

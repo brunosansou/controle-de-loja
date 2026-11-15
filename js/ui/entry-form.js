@@ -1,6 +1,6 @@
 // Formulário de lançamento (novo ou editar).
 import { parseBRL, formatBRL } from '../money.js';
-import { formatLong } from '../dates.js';
+import { formatLong, todayKey } from '../dates.js';
 import { escapeHtml, errorText, dayHash, toast } from './dom.js';
 
 export async function renderEntryForm(root, ctx, { mode, type, date, id }) {
@@ -17,7 +17,11 @@ export async function renderEntryForm(root, ctx, { mode, type, date, id }) {
   const isIn = type === 'entrada';
   const method = entry?.method ?? 'dinheiro';
   const amountText = entry ? formatBRL(entry.amountCents).replace('R$ ', '') : '';
-  const back = dayHash(date, ctx.now());
+  // Um novo lançamento aberto para "hoje" acompanha o dia em que for salvo
+  // (ex.: formulário aberto antes da meia-noite e salvo de manhã).
+  const followsToday = mode === 'novo' && date === todayKey(ctx.now());
+  const currentDate = () => (followsToday ? todayKey(ctx.now()) : date);
+  let back = dayHash(date, ctx.now());
   const noun = isIn ? 'entrada' : 'saída';
 
   root.innerHTML = `
@@ -51,6 +55,15 @@ export async function renderEntryForm(root, ctx, { mode, type, date, id }) {
     errorEl.hidden = false;
   };
 
+  if (followsToday) {
+    const titleDate = form.querySelector('h1 span');
+    const onVisible = () => {
+      if (!form.isConnected) return document.removeEventListener('visibilitychange', onVisible);
+      if (document.visibilityState === 'visible') titleDate.textContent = formatLong(currentDate());
+    };
+    document.addEventListener('visibilitychange', onVisible);
+  }
+
   let busy = false;
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
@@ -69,8 +82,13 @@ export async function renderEntryForm(root, ctx, { mode, type, date, id }) {
     busy = true;
     saveBtn.disabled = true;
     try {
-      if (mode === 'editar') await ctx.store.updateEntry(entry.id, fields);
-      else await ctx.store.addEntry({ date, type, ...fields });
+      if (mode === 'editar') {
+        await ctx.store.updateEntry(entry.id, fields);
+      } else {
+        const saveDate = currentDate();
+        back = dayHash(saveDate, ctx.now());
+        await ctx.store.addEntry({ date: saveDate, type, ...fields });
+      }
       toast(mode === 'editar' ? 'Lançamento salvo' : `${isIn ? 'Entrada' : 'Saída'} salva`);
       ctx.navigate(back);
     } catch (err) {
