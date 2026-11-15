@@ -4,6 +4,8 @@ import { createStore } from './store.js';
 import { computeLedger } from './calc.js';
 import { renderDayView } from './ui/day-view.js';
 import { renderEntryForm } from './ui/entry-form.js';
+import { renderClosingView } from './ui/closing-view.js';
+import { renderHistoryView } from './ui/history-view.js';
 import { todayKey } from './dates.js';
 
 const DATE = '(\\d{4}-\\d{2}-\\d{2})';
@@ -16,6 +18,8 @@ const routes = [
     render: (root, ctx, [type, date]) => renderEntryForm(root, ctx, { mode: 'novo', type, date }),
   },
   { re: /^#\/editar\/([\w-]+)$/, tab: 'hoje', render: (root, ctx, [id]) => renderEntryForm(root, ctx, { mode: 'editar', id }) },
+  { re: new RegExp(`^#/fechar/${DATE}$`), tab: 'hoje', render: (root, ctx, [date]) => renderClosingView(root, ctx, date) },
+  { re: /^#\/historico$/, tab: 'historico', render: (root, ctx) => renderHistoryView(root, ctx) },
 ];
 
 async function main() {
