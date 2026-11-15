@@ -19,7 +19,7 @@ test('ida e volta', () => {
   assert.deepEqual(back.entries, [entrada]);
   assert.deepEqual(back.days, [diaFechado]);
   assert.equal(back.exportedAt, data.exportedAt);
-  assert.equal(backupFileName(new Date(2026, 10, 15, 22, 0)), 'controle-loja-backup-2026-11-15.json');
+  assert.equal(backupFileName(new Date(2026, 10, 15, 22, 0)), 'controle-loja-backup-2026-11-15.txt');
 });
 
 test('recusa arquivos inválidos', () => {

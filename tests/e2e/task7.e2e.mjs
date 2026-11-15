@@ -47,7 +47,7 @@ await page.click('.tabs a[data-tab="backup"]');
 await page.waitForSelector('.backup-status');
 assert.equal(await text(page, '.backup-status'), 'Nenhum backup feito ainda.');
 const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-action="export"]')]);
-assert.equal(download.suggestedFilename(), 'controle-loja-backup-2026-11-15.json');
+assert.equal(download.suggestedFilename(), 'controle-loja-backup-2026-11-15.txt');
 const saved = join(dir, download.suggestedFilename());
 await download.saveAs(saved);
 const data = JSON.parse(await readFile(saved, 'utf8'));

@@ -19,7 +19,7 @@ export function buildBackup({ entries, days }, now) {
 }
 
 export function backupFileName(now) {
-  return `controle-loja-backup-${todayKey(now)}.json`;
+  return `controle-loja-backup-${todayKey(now)}.txt`;
 }
 
 function validEntry(e) {

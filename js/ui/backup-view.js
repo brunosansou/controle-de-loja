@@ -3,6 +3,16 @@ import { buildBackup, backupFileName, parseBackup, BackupError, needsBackupRemin
 import { formatShort, todayKey } from '../dates.js';
 import { timeOf, toast } from './dom.js';
 
+function downloadFile(file) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(file);
+  a.download = file.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+
 function describeWhen(iso) {
   return `${formatShort(todayKey(new Date(iso)))} às ${timeOf(iso)}`;
 }
@@ -17,7 +27,7 @@ export async function renderBackupView(root, ctx) {
     <div class="backup-actions">
       <button type="button" class="btn primary" data-action="export">Exportar backup</button>
       <button type="button" class="btn secondary" data-action="import">Importar backup</button>
-      <input type="file" accept=".json,application/json" hidden data-file>
+      <input type="file" hidden data-file>
     </div>
     <p class="form-error" role="alert" hidden></p>`;
 
@@ -35,18 +45,19 @@ export async function renderBackupView(root, ctx) {
       const now = ctx.now();
       const [entries, dayStates] = await Promise.all([ctx.store.listEntries(), ctx.store.getDayStates()]);
       const data = buildBackup({ entries, days: Object.values(dayStates) }, now);
-      const file = new File([JSON.stringify(data)], backupFileName(now), { type: 'application/json' });
+      // text/plain + .txt: o Chrome (inclusive no Android) não compartilha arquivos .json.
+      const file = new File([JSON.stringify(data)], backupFileName(now), { type: 'text/plain' });
+      let shared = false;
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'Backup Controle de Loja' });
-      } else {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(file);
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+        try {
+          await navigator.share({ files: [file], title: 'Backup Controle de Loja' });
+          shared = true;
+        } catch (err) {
+          if (err?.name === 'AbortError') throw err; // o usuário cancelou
+          // Qualquer outra falha ao compartilhar: baixa o arquivo.
+        }
       }
+      if (!shared) downloadFile(file);
       await ctx.store.setLastBackupAt(now.toISOString());
       toast('Backup exportado');
       ctx.navigate('#/backup');
