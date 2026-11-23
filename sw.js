@@ -1,6 +1,6 @@
 // Service worker: guarda o app no celular para funcionar sem internet.
 // Ao mudar qualquer arquivo do app, suba a versão abaixo para o celular baixar a nova.
-const CACHE = 'controle-loja-v2';
+const CACHE = 'controle-loja-v3';
 const FILES = [
   './',
   './index.html',

@@ -1,22 +1,26 @@
 // Formulário de lançamento (novo ou editar).
 import { parseBRL, formatBRL } from '../money.js';
 import { formatLong, todayKey } from '../dates.js';
+import { numberClients } from '../calc.js';
 import { escapeHtml, errorText, dayHash, toast } from './dom.js';
 import { icon } from './icons.js';
 
 export async function renderEntryForm(root, ctx, { mode, type, date, id }) {
   let entry = null;
+  let clientLabel = '';
   if (mode === 'editar') {
-    entry = (await ctx.store.listEntries()).find((e) => e.id === id);
+    const all = await ctx.store.listEntries();
+    entry = all.find((e) => e.id === id);
     if (!entry) {
       root.innerHTML = '<p class="empty">Lançamento não encontrado. <a href="#/hoje">Voltar para hoje</a></p>';
       return;
     }
     type = entry.type;
     date = entry.date;
+    if (type === 'entrada') clientLabel = ` · Cliente ${numberClients(all, date).byId.get(entry.id)}`;
   }
   const isIn = type === 'entrada';
-  const method = entry?.method ?? 'dinheiro';
+  const method = entry?.method ?? 'pix';
   const amountText = entry ? formatBRL(entry.amountCents).replace('R$ ', '') : '';
   // Um novo lançamento aberto para "hoje" acompanha o dia em que for salvo
   // (ex.: formulário aberto antes da meia-noite e salvo de manhã).
@@ -32,7 +36,7 @@ export async function renderEntryForm(root, ctx, { mode, type, date, id }) {
     <form class="entry-form ${isIn ? 'is-in' : 'is-out'}" novalidate>
       <header class="top-bar">
         <a class="back icon-btn" href="${back}" aria-label="Voltar">${icon('back')}</a>
-        <h1>${mode === 'editar' ? 'Editar' : 'Nova'} ${noun} <span>${formatLong(date)}</span></h1>
+        <h1>${mode === 'editar' ? 'Editar' : 'Nova'} ${noun} <span>${formatLong(date)}${clientLabel}</span></h1>
       </header>
       <label class="field outlined money">
         <span class="field-label">Valor</span>
@@ -46,8 +50,8 @@ export async function renderEntryForm(root, ctx, { mode, type, date, id }) {
       ${isIn ? `
       <fieldset class="method segmented">
         <legend>Forma de pagamento</legend>
-        ${segment('dinheiro', 'Dinheiro', 'cash')}
         ${segment('pix', 'Pix', 'phone')}
+        ${segment('dinheiro', 'Dinheiro', 'cash')}
       </fieldset>` : ''}
       <p class="form-error" role="alert" hidden></p>
       <button type="submit" class="btn primary">${icon('check')}Salvar ${noun}</button>

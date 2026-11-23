@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { splitSaldo, computeLedger, findDay, pendingLossForToday, unclosedPastDays } from '../js/calc.js';
+import { splitSaldo, computeLedger, findDay, pendingLossForToday, unclosedPastDays, numberClients } from '../js/calc.js';
 
 let seq = 0;
 function e(date, type, amountCents, method = null) {
@@ -105,4 +105,28 @@ test('pendingLossForToday e unclosedPastDays', () => {
   });
   assert.deepEqual(unclosedPastDays(L2, '2026-11-15'), []);
   assert.equal(L2.days[0].closed, true);
+});
+
+test('numberClients: usa o número gravado e numera entradas antigas pela ordem', () => {
+  const legado1 = e('2026-11-15', 'entrada', 100, 'pix');
+  const saida = e('2026-11-15', 'saida', 50);
+  const legado2 = e('2026-11-15', 'entrada', 100, 'dinheiro');
+  const novo = { ...e('2026-11-15', 'entrada', 100, 'pix'), clientNumber: 3 };
+  const outroDia = { ...e('2026-11-14', 'entrada', 100, 'pix'), clientNumber: 7 };
+  const r = numberClients([novo, legado2, outroDia, saida, legado1], '2026-11-15');
+  assert.equal(r.byId.get(legado1.id), 1);
+  assert.equal(r.byId.get(legado2.id), 2);
+  assert.equal(r.byId.get(novo.id), 3);
+  assert.equal(r.byId.has(saida.id), false);
+  assert.equal(r.byId.has(outroDia.id), false);
+  assert.equal(r.next, 4);
+});
+
+test('numberClients: dia vazio começa em 1 e número excluído no meio não volta', () => {
+  assert.equal(numberClients([], '2026-11-15').next, 1);
+  const a = { ...e('2026-11-15', 'entrada', 100, 'pix'), clientNumber: 1 };
+  const c = { ...e('2026-11-15', 'entrada', 100, 'pix'), clientNumber: 3 };
+  const r = numberClients([a, c], '2026-11-15');
+  assert.equal(r.byId.get(c.id), 3);
+  assert.equal(r.next, 4);
 });

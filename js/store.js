@@ -1,6 +1,7 @@
 // Regras de gravação. Fala com um backend de armazenamento injetado
 // (IndexedDB no navegador, memória nos testes).
 import { isFuture } from './dates.js';
+import { numberClients } from './calc.js';
 
 export class StoreError extends Error {
   constructor(code, message = code) {
@@ -18,7 +19,10 @@ function normalize(entry, now) {
   if (!Number.isSafeInteger(e.amountCents) || e.amountCents <= 0) throw new StoreError('VALOR_INVALIDO');
   if (typeof e.date !== 'string' || !DATE_RE.test(e.date)) throw new StoreError('DATA_INVALIDA');
   if (isFuture(e.date, now)) throw new StoreError('DATA_FUTURA');
-  if (e.type === 'saida') e.method = null;
+  if (e.type === 'saida') {
+    e.method = null;
+    delete e.clientNumber;
+  }
   else if (e.method !== 'dinheiro' && e.method !== 'pix') throw new StoreError('FORMA_INVALIDA');
   return e;
 }
@@ -57,6 +61,7 @@ export function createStore(backend, { now = () => new Date(), newId = () => cry
         now(),
       );
       await assertOpen(entry.date);
+      if (entry.type === 'entrada') entry.clientNumber = numberClients(await backend.getAll('entries'), entry.date).next;
       await backend.put('entries', entry);
       return entry;
     },

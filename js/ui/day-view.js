@@ -1,5 +1,5 @@
 // Tela de um dia: "Hoje" e o detalhe de um dia do histórico.
-import { findDay, pendingLossForToday, unclosedPastDays } from '../calc.js';
+import { findDay, numberClients, pendingLossForToday, unclosedPastDays } from '../calc.js';
 import { formatLong, formatShort, todayKey } from '../dates.js';
 import { escapeHtml, money, timeOf } from './dom.js';
 import { icon } from './icons.js';
@@ -24,6 +24,7 @@ export async function renderDayView(root, ctx, date) {
   }
 
   const saldo = day?.saldoCents ?? 0;
+  const clients = numberClients(entries, date);
   const rows = [];
   if (day?.prejuizoAnterior) {
     rows.push(`<li class="row auto">
@@ -35,7 +36,9 @@ export async function renderDayView(root, ctx, date) {
   for (const e of day?.entries ?? []) {
     const isIn = e.type === 'entrada';
     const label = e.description || (isIn ? 'Entrada' : 'Saída');
-    const meta = isIn ? `${e.method === 'pix' ? 'Pix' : 'Dinheiro'} às ${timeOf(e.createdAt)}` : `às ${timeOf(e.createdAt)}`;
+    const meta = isIn
+      ? `Cliente ${clients.byId.get(e.id)} · ${e.method === 'pix' ? 'Pix' : 'Dinheiro'} às ${timeOf(e.createdAt)}`
+      : `às ${timeOf(e.createdAt)}`;
     const inner = `<span class="avatar ${isIn ? 'in' : 'out'}">${icon(isIn ? 'add' : 'remove')}</span>
       <span class="what">${escapeHtml(label)}<small>${meta}</small></span>
       <span class="amount ${isIn ? 'in' : 'out'}">${isIn ? '+' : '−'}${money(e.amountCents)}</span>`;

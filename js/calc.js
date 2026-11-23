@@ -68,3 +68,22 @@ export function pendingLossForToday(ledger, today) {
 export function unclosedPastDays(ledger, today) {
   return ledger.days.filter((d) => d.date < today && !d.closed).map((d) => d.date);
 }
+
+/**
+ * Números de cliente das entradas de um dia. Entradas novas já trazem o
+ * número gravado; as antigas (de antes da numeração) recebem pela ordem.
+ * `next` é o número do próximo cliente do dia.
+ */
+export function numberClients(entries, date) {
+  const dayIn = entries
+    .filter((x) => x.date === date && x.type === 'entrada')
+    .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const byId = new Map();
+  let last = 0;
+  for (const x of dayIn) {
+    const n = Number.isSafeInteger(x.clientNumber) && x.clientNumber > 0 ? x.clientNumber : last + 1;
+    byId.set(x.id, n);
+    last = Math.max(last, n);
+  }
+  return { byId, next: last + 1 };
+}

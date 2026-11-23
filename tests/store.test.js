@@ -83,3 +83,26 @@ test('replaceAll substitui tudo e grava lastBackupAt', async () => {
   await s.setLastBackupAt('2026-11-15T10:00:00.000Z');
   assert.equal(await s.getLastBackupAt(), '2026-11-15T10:00:00.000Z');
 });
+
+test('addEntry numera os clientes do dia; saída não tem número; editar mantém', async () => {
+  let t = new Date(2026, 10, 15, 14, 0);
+  let n = 0;
+  const s = createStore(createMemoryBackend(), { now: () => t, newId: () => `id${++n}` });
+  const base = { type: 'entrada', amountCents: 100, description: '', method: 'pix' };
+  const a = await s.addEntry({ ...base, date: '2026-11-15' });
+  const saida = await s.addEntry({ ...base, date: '2026-11-15', type: 'saida', method: null });
+  const b = await s.addEntry({ ...base, date: '2026-11-15' });
+  const c = await s.addEntry({ ...base, date: '2026-11-15' });
+  assert.equal(a.clientNumber, 1);
+  assert.equal(b.clientNumber, 2);
+  assert.equal(c.clientNumber, 3);
+  assert.equal('clientNumber' in saida, false);
+  await s.deleteEntry(b.id);
+  const d = await s.addEntry({ ...base, date: '2026-11-15' });
+  assert.equal(d.clientNumber, 4);
+  const u = await s.updateEntry(c.id, { amountCents: 500, clientNumber: 99 });
+  assert.equal(u.clientNumber, 3);
+  t = new Date(2026, 10, 16, 9, 0);
+  const amanha = await s.addEntry({ ...base, date: '2026-11-16' });
+  assert.equal(amanha.clientNumber, 1);
+});

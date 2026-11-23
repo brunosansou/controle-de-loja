@@ -29,6 +29,7 @@ function validEntry(e) {
   if (!Number.isSafeInteger(e.amountCents) || e.amountCents <= 0) return false;
   if (typeof e.description !== 'string') return false;
   if (typeof e.createdAt !== 'string' || typeof e.updatedAt !== 'string') return false;
+  if ('clientNumber' in e && !(Number.isSafeInteger(e.clientNumber) && e.clientNumber > 0)) return false;
   if (e.type === 'saida') return e.method === null;
   if (e.type === 'entrada') return e.method === 'dinheiro' || e.method === 'pix';
   return false;

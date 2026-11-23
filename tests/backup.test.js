@@ -38,8 +38,19 @@ test('recusa arquivos inválidos', () => {
     JSON.stringify({ ...ok, entries: [{ ...entrada, type: 'saida', method: 'pix' }] }),
     JSON.stringify({ ...ok, entries: [{ ...entrada, method: null }] }),
     JSON.stringify({ ...ok, days: [{ date: 'x', closed: true }] }),
+    JSON.stringify({ ...ok, entries: [{ ...entrada, clientNumber: 0 }] }),
+    JSON.stringify({ ...ok, entries: [{ ...entrada, clientNumber: 1.5 }] }),
+    JSON.stringify({ ...ok, entries: [{ ...entrada, clientNumber: '2' }] }),
   ];
   for (const bad of bads) assert.throws(() => parseBackup(bad), BackupError, bad);
+});
+
+test('aceita backup com e sem número de cliente', () => {
+  const comNumero = { ...entrada, clientNumber: 4 };
+  const data = buildBackup({ entries: [entrada, { ...comNumero, id: 'a2' }], days: [] }, new Date());
+  const back = parseBackup(JSON.stringify(data));
+  assert.equal(back.entries[1].clientNumber, 4);
+  assert.equal('clientNumber' in back.entries[0], false);
 });
 
 test('lembrete de backup', () => {
